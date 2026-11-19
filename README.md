@@ -6,6 +6,8 @@
 ![Mini-games](https://img.shields.io/badge/mini--games-26-23805A)
 [![License: MIT](https://img.shields.io/badge/license-MIT-lightgrey)](LICENSE)
 
+![System Design Lab: a step-by-step caching lesson, then the Cache Keeper mini-game](docs/images/demo.gif)
+
 **Learn it, watch it, play it, run it, read the code.** 26 core system design concepts (caching, sharding, consistent hashing, rate limiting, sagas, circuit breakers and more), each with:
 
 | 📖 Learn | ▶ Watch | 🎮 Play | ⚙️ Run | 🧑‍💻 Code |
