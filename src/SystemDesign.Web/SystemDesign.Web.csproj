@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- The 26 demos run for real inside this web app. -->
+    <ProjectReference Include="..\SystemDesign.Concepts\SystemDesign.Concepts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Demo source files and the course page are embedded, so the UI can show them wherever the app runs from. -->
+    <EmbeddedResource Include="..\SystemDesign.Concepts\Demos\*.cs" LogicalName="demos/%(Filename)%(Extension)" Visible="false" />
+    <EmbeddedResource Include="..\..\docs\system-design-course.html" LogicalName="course.html" Visible="false" />
+  </ItemGroup>
+</Project>

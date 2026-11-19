@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>System Design for .NET Developers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#F3F5F7; --surface:#FFFFFF; --ink:#17202B; --muted:#56616E; --line:#D6DCE3;
+  --accent:#1D58B5; --accent-soft:#E3ECFA; --good:#23805A; --good-soft:#E2F3EA;
+  --bad:#B83A2E; --bad-soft:#F8E4E1; --warn:#A86A00; --warn-soft:#FBF0D9;
+  --code-bg:#0F1A28; --code-ink:#D8E2EE;
+  --sans:"Schibsted Grotesk", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#11161C; --surface:#18202A; --ink:#E5EAF0; --muted:#9AA6B3; --line:#2B3541;
+    --accent:#7AAAF2; --accent-soft:#1C2A40; --good:#5CC497; --good-soft:#15302A;
+    --bad:#F08A7E; --bad-soft:#3A1F1C; --warn:#E9B64F; --warn-soft:#352914;
+    --code-bg:#0A1018; --code-ink:#D8E2EE; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#11161C; --surface:#18202A; --ink:#E5EAF0; --muted:#9AA6B3; --line:#2B3541;
+  --accent:#7AAAF2; --accent-soft:#1C2A40; --good:#5CC497; --good-soft:#15302A;
+  --bad:#F08A7E; --bad-soft:#3A1F1C; --warn:#E9B64F; --warn-soft:#352914;
+  --code-bg:#0A1018; --code-ink:#D8E2EE; color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:calc(env(safe-area-inset-top,0px) + 16px);scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.6}
+a{color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+code{font-family:var(--mono);font-size:.86em;background:var(--accent-soft);padding:.1em .35em;border-radius:4px}
+
+.layout{display:grid;grid-template-columns:270px minmax(0,1fr);max-width:1240px;margin:0 auto}
+nav.side{position:sticky;top:env(safe-area-inset-top,0px);height:calc(100vh - env(safe-area-inset-top,0px));overflow-y:auto;padding:28px 18px 40px 24px;border-right:1px solid var(--line)}
+nav.side h2{font-size:14px;font-weight:700;color:var(--muted);margin:22px 0 6px}
+nav.side h2:first-child{margin-top:0}
+nav.side a{display:block;text-decoration:none;color:var(--ink);font-size:15px;padding:4px 8px;border-radius:6px;line-height:1.35}
+nav.side a:hover{background:var(--accent-soft)}
+nav.side a.game-link{margin-top:18px;background:var(--ink);color:var(--paper);font-weight:700;padding:10px 12px;text-align:center}
+nav.side a.done::after{content:" ✓";color:var(--good);font-weight:700}
+.navtoggle{display:none}
+
+main{padding:40px 48px 120px;min-width:0}
+.hero h1{font-size:clamp(34px,5vw,54px);line-height:1.05;letter-spacing:-.02em;margin:0 0 14px;font-weight:800;max-width:15ch}
+.hero p{max-width:62ch;color:var(--muted);margin:0 0 26px}
+.path{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:18px;background:var(--surface);border:1px solid var(--line);border-radius:12px;margin-bottom:12px}
+.path button{font:600 14px var(--sans);color:var(--ink);background:var(--paper);border:1.5px solid var(--line);border-radius:999px;padding:6px 13px;cursor:pointer}
+.path button:hover{border-color:var(--accent);color:var(--accent)}
+.path .arrow{color:var(--muted);font-size:14px}
+.pathnote{font-size:14px;color:var(--muted);margin:0 0 30px}
+.progress{display:flex;align-items:center;gap:12px;font-size:14px;color:var(--muted);margin-bottom:40px}
+.progress .bar{flex:1;max-width:320px;height:8px;background:var(--line);border-radius:999px;overflow:hidden}
+.progress .bar i{display:block;height:100%;width:0;background:var(--good);transition:width .3s}
+
+.track{margin-top:56px}
+.track>h2{font-size:30px;letter-spacing:-.01em;margin:0 0 4px}
+.track>p{color:var(--muted);margin:0 0 22px;max-width:62ch}
+
+article.concept{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:30px 32px;margin-bottom:22px}
+article.concept h3{font-size:24px;margin:0 0 6px;letter-spacing:-.01em;display:flex;gap:12px;align-items:baseline}
+article.concept h3 .num{font-size:15px;color:var(--muted);font-weight:600;min-width:2.2ch}
+.summary{font-size:19px;line-height:1.5;margin:0 0 18px;max-width:64ch}
+.body p,.body li{max-width:68ch}
+.body ul,.body ol{padding-left:22px}
+.body li{margin-bottom:4px}
+.tradeoffs{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:20px 0}
+.tradeoffs div{border-radius:10px;padding:14px 16px;font-size:15.5px}
+.tradeoffs .gain{background:var(--good-soft)}
+.tradeoffs .cost{background:var(--bad-soft)}
+.tradeoffs h4{margin:0 0 6px;font-size:15px}
+.tradeoffs .gain h4{color:var(--good)} .tradeoffs .cost h4{color:var(--bad)}
+.tradeoffs ul{margin:0;padding-left:18px}
+.dotnet{border-left:4px solid var(--accent);padding:4px 0 4px 16px;margin:22px 0 12px}
+.dotnet h4{margin:0 0 4px;font-size:16px;color:var(--accent)}
+.dotnet p{margin:0;max-width:66ch}
+.codewrap{overflow-x:auto;background:var(--code-bg);border-radius:10px;margin:12px 0 18px}
+pre{margin:0;padding:16px 18px;font-family:var(--mono);font-size:13.5px;line-height:1.55;color:var(--code-ink);white-space:pre}
+.interview{background:var(--warn-soft);border-radius:10px;padding:12px 16px;font-size:15.5px;margin:16px 0}
+.interview b{color:var(--warn)}
+details.check{border:1.5px dashed var(--line);border-radius:10px;padding:12px 16px;margin-top:14px}
+details.check summary{cursor:pointer;font-weight:600}
+details.check p{margin:10px 0 0}
+.markdone{margin-top:16px;font:600 14px var(--sans);border:1.5px solid var(--line);background:transparent;color:var(--ink);padding:7px 14px;border-radius:999px;cursor:pointer}
+.markdone.on{background:var(--good);border-color:var(--good);color:#fff}
+
+/* game */
+#game{margin-top:80px;background:var(--ink);color:var(--paper);border-radius:18px;padding:36px 36px 40px}
+#game h2{font-size:clamp(28px,4vw,40px);margin:0 0 8px;letter-spacing:-.02em}
+#game .intro{color:color-mix(in srgb,var(--paper) 75%,transparent);max-width:62ch;margin:0 0 24px}
+.hud{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:22px}
+.hud div{background:color-mix(in srgb,var(--paper) 8%,transparent);border-radius:10px;padding:12px 14px}
+.hud span{display:block;font-size:13px;opacity:.7}
+.hud strong{font-size:24px}
+.uptime-bar{height:6px;border-radius:999px;background:color-mix(in srgb,var(--paper) 15%,transparent);margin-top:8px;overflow:hidden}
+.uptime-bar i{display:block;height:100%;background:var(--good);transition:width .4s,background .4s}
+.arch{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 24px}
+.arch .chip{font:600 13px var(--sans);padding:6px 11px;border-radius:999px;border:1.5px dashed color-mix(in srgb,var(--paper) 30%,transparent);opacity:.45}
+.arch .chip.on{opacity:1;border-style:solid;border-color:var(--good);background:color-mix(in srgb,var(--good) 25%,transparent)}
+.scene{background:var(--surface);color:var(--ink);border-radius:14px;padding:24px 26px}
+.scene .stage{font-size:14px;color:var(--muted);font-weight:600;margin-bottom:6px}
+.scene h3{margin:0 0 10px;font-size:22px;line-height:1.3}
+.scene p.sit{margin:0 0 18px;max-width:64ch}
+.opts{display:grid;gap:10px}
+.opts button{text-align:left;font:500 16px/1.45 var(--sans);color:var(--ink);background:var(--paper);border:1.5px solid var(--line);border-radius:10px;padding:13px 16px;cursor:pointer}
+.opts button:hover:not(:disabled){border-color:var(--accent)}
+.opts button:disabled{cursor:default}
+.opts button.right{border-color:var(--good);background:var(--good-soft)}
+.opts button.partial{border-color:var(--warn);background:var(--warn-soft)}
+.opts button.wrong{border-color:var(--bad);background:var(--bad-soft)}
+.feedback{margin-top:18px;padding:14px 16px;border-radius:10px;background:var(--accent-soft)}
+.feedback p{margin:0 0 8px}
+.feedback a{font-weight:600}
+.gbtn{font:700 16px var(--sans);background:var(--accent);color:#fff;border:0;border-radius:10px;padding:12px 20px;cursor:pointer;margin-top:14px}
+.result h3{font-size:28px}
+.result ul{padding-left:20px}
+
+footer{color:var(--muted);font-size:14px;margin-top:50px}
+
+@media (max-width:900px){
+  .layout{grid-template-columns:1fr}
+  nav.side{position:fixed;inset:0 0 0 auto;width:min(300px,85vw);height:100%;background:var(--surface);z-index:20;transform:translateX(100%);transition:transform .25s;padding-top:calc(env(safe-area-inset-top,0px) + 24px);border-left:1px solid var(--line)}
+  nav.side.open{transform:none}
+  .navtoggle{display:block;position:fixed;right:14px;bottom:calc(env(safe-area-inset-bottom,0px) + 14px);z-index:21;font:700 15px var(--sans);background:var(--ink);color:var(--paper);border:0;border-radius:999px;padding:12px 18px}
+  main{padding:28px 18px 100px}
+  article.concept{padding:22px 18px}
+  .tradeoffs{grid-template-columns:1fr}
+  #game{padding:26px 18px}
+  .hud strong{font-size:19px}
+}
+</style>
+</head>
+<body>
+<button class="navtoggle" id="navtoggle" aria-expanded="false">Topics</button>
+<div class="layout">
+  <nav class="side" id="side" aria-label="Topics"></nav>
+  <main>
+    <header class="hero" id="top">
+      <h1>System design for .NET developers</h1>
+      <p>Twenty-six concepts, each on its own: what it is, what it costs, how you’d build it in .NET, and what an interviewer wants to hear. At the end, a game where you scale an e‑commerce app from one server to ten million users and have to make the calls yourself.</p>
+      <div class="path" id="path" aria-label="Request path"></div>
+      <p class="pathnote">A request’s journey through a typical system. Tap any stop to jump to it.</p>
+      <div class="progress"><span id="progtext">0 of 26 marked as learned</span><div class="bar"><i id="progbar"></i></div></div>
+    </header>
+    <div id="tracks"></div>
+    <section id="game" aria-label="Game"></section>
+    <footer>Progress is saved in this browser only. Tool names reflect the .NET ecosystem as of late 2026; check versions before using in production.</footer>
+  </main>
+</div>
+
+<script>
+const TRACKS = [
+  {id:"foundations", title:"Foundations", blurb:"How to think, how to estimate, and the first moves you make when one server isn’t enough."},
+  {id:"data", title:"Data", blurb:"Where most real systems hurt. Storage choices are the hardest decisions to undo."},
+  {id:"communication", title:"Communication", blurb:"How services, clients and background work talk to each other."},
+  {id:"reliability", title:"Reliability and security", blurb:"Keeping the system up, honest and safe when things go wrong — and they will."},
+  {id:"cases", title:"Case studies", blurb:"Putting the pieces together on two classic problems."}
+];
+
+const C = [
+/* ---------------- FOUNDATIONS ---------------- */
+{id:"approach",track:"foundations",title:"How to approach any design",
+summary:"Every good design, real or in an interview, follows the same loop: clarify, estimate, sketch, go deep on the hard part, then try to break it.",
+body:`<ol>
+<li><b>Functional requirements.</b> What must it do? Write three to five verbs: “shorten a URL”, “redirect”, “see click stats”.</li>
+<li><b>Non-functional requirements.</b> How many users? Read-heavy or write-heavy? Latency target? Is losing data acceptable? Is stale data acceptable?</li>
+<li><b>Estimate.</b> Requests per second, storage per year, bandwidth. These numbers pick your architecture for you.</li>
+<li><b>API.</b> Define the endpoints before any boxes.</li>
+<li><b>Data model.</b> Tables or documents, and the access patterns that hit them.</li>
+<li><b>High-level diagram.</b> Client, load balancer, services, stores, queues.</li>
+<li><b>Deep dive.</b> Pick the hardest part (ID generation, fan-out, consistency) and go deep.</li>
+<li><b>Bottlenecks and failures.</b> What breaks at 10× load? What happens when the database dies?</li>
+</ol>
+<p>The most common failure is jumping to step 6 without doing step 2. Boxes drawn before you know the read/write ratio are guesses.</p>`,
+gain:["Repeatable structure under pressure","Forces trade-offs into the open"],
+cost:["Takes discipline to not jump ahead","Easy to spend too long on requirements"],
+dotnet:"You already do this informally: you don’t scaffold controllers before you know the contract. System design is the same habit applied to the whole system, not one Web API project.",
+code:null,
+interview:"Spend the first five minutes of a 45-minute round asking questions. Saying “I’ll assume reads outnumber writes 100 to 1 — is that right?” scores better than silence.",
+check:{q:"Why should the read/write ratio be one of your first questions?",a:"It decides almost everything downstream: read-heavy points to caching and read replicas; write-heavy points to sharding, queues and write-optimised stores."}},
+
+{id:"estimation",track:"foundations",title:"Back-of-the-envelope estimation",
+summary:"Rough numbers, done fast, tell you whether you need one server or a hundred. Precision doesn’t matter; the order of magnitude does.",
+body:`<p><b>Shortcuts worth memorising:</b></p>
+<ul>
+<li>1 day ≈ 86,400 seconds ≈ 10⁵ seconds.</li>
+<li>1 million requests per day ≈ 12 per second on average. Peak is usually 2 to 10 times the average.</li>
+<li>One well-tuned ASP.NET Core instance can handle thousands of simple requests per second; the database usually gives up first.</li>
+</ul>
+<p><b>Latency ladder (approximate):</b> memory read ~100 ns · SSD random read ~100 µs · round trip inside a data centre ~0.5 ms · spinning disk seek ~10 ms · round trip across continents ~150 ms. A Redis call is roughly a network round trip; a SQL query with a missing index can be hundreds of milliseconds.</p>
+<p><b>Storage:</b> users × items per user × bytes per item × retention. 10 million users × 1 KB profile = 10 GB. That fits on one machine; don’t shard it.</p>`,
+gain:["Kills over-engineering early","Shows the interviewer you think in numbers"],
+cost:["Wrong assumptions give confidently wrong answers","Peak vs average is easy to forget"],
+dotnet:"Write it as code if that helps you think. Then verify against reality with a load test (k6, NBomber or Azure Load Testing) rather than trusting the estimate.",
+code:`// 100M daily active users, each makes 10 reads and 1 write per day
+const long Dau = 100_000_000;
+double readQps  = Dau * 10 / 86_400.0;   // ≈ 11,574 avg
+double peakRead = readQps * 3;           // ≈ 35,000 at peak
+double writeQps = Dau * 1 / 86_400.0;    // ≈ 1,157 avg
+
+// Storage: each write is 500 bytes, kept 5 years
+double tb = Dau * 500.0 * 365 * 5 / 1e12; // ≈ 91 TB  -> must partition`,
+interview:"Round aggressively and say so out loud: “call it 10⁵ seconds a day”. Interviewers care that you know 10k QPS and 100 QPS are different worlds, not about the third digit.",
+check:{q:"An app has 5 million daily users, each making 20 requests. What’s the rough average QPS?",a:"100 million requests ÷ 10⁵ seconds ≈ 1,000 QPS on average, maybe 3,000 to 5,000 at peak."}},
+
+{id:"scaling",track:"foundations",title:"Vertical vs horizontal scaling",
+summary:"Vertical scaling means a bigger machine. Horizontal scaling means more machines. Horizontal only works if your servers are stateless.",
+body:`<p><b>Vertical</b> is simple: no code changes, just more CPU and RAM. It has a hard ceiling, gets expensive fast, and one machine is still one point of failure.</p>
+<p><b>Horizontal</b> adds identical instances behind a load balancer. It scales much further and survives a dead instance, but only if any instance can serve any request. That means no state living on the server: no in-memory sessions, no files written to local disk, no static dictionaries acting as a cache of truth.</p>
+<p>Start vertical. Move horizontal when you need redundancy or hit the ceiling. Databases are much harder to scale horizontally than app servers, which is why the next track exists.</p>`,
+gain:["Horizontal: near-unlimited scale and fault tolerance","Vertical: zero complexity"],
+cost:["Horizontal: needs stateless design and a load balancer","Vertical: ceiling, cost, single point of failure"],
+dotnet:"The .NET-specific trap: ASP.NET Core Data Protection keys. Cookie auth and antiforgery tokens are encrypted with keys stored per machine by default, so on a second instance users get logged out or see antiforgery errors. Store the keys centrally, and move session to a distributed store.",
+code:`builder.Services.AddDataProtection()
+    .SetApplicationName("shopkart")
+    .PersistKeysToStackExchangeRedis(redis, "DataProtection-Keys");
+
+builder.Services.AddStackExchangeRedisCache(o =>
+    o.Configuration = builder.Configuration["Redis"]);
+builder.Services.AddSession();   // now backed by Redis, not memory`,
+interview:"When you say “scale horizontally”, immediately follow with “so the app tier must be stateless; session goes to Redis or into a token”. That sentence shows you understand the prerequisite.",
+check:{q:"You add a second instance and users randomly get logged out. Name two likely causes in ASP.NET Core.",a:"In-memory session state, and Data Protection keys that aren’t shared across instances."}},
+
+{id:"load-balancing",track:"foundations",title:"Load balancing",
+summary:"A load balancer spreads requests across healthy servers and removes dead ones from rotation.",
+body:`<p><b>Layer 4</b> balancers route by IP and port: very fast, can’t see URLs. <b>Layer 7</b> balancers read HTTP: they can route <code>/api/orders</code> to one pool and <code>/images</code> to another, terminate TLS and add headers.</p>
+<p><b>Algorithms:</b> round robin (simple), least connections (better when requests vary in cost), weighted (mixed machine sizes), IP hash (same client to the same server, which is a form of sticky sessions and works against even balancing).</p>
+<p><b>Health checks</b> are what make it useful. The balancer pings each instance; failing ones stop receiving traffic. The balancer itself needs redundancy too, or it becomes the new single point of failure. Cloud balancers handle that for you.</p>`,
+gain:["Horizontal scale","Zero-downtime deploys by draining instances"],
+cost:["Another hop of latency","Sticky sessions undermine even distribution"],
+dotnet:"Options: YARP (Microsoft’s reverse proxy library, written in .NET), nginx, Azure Application Gateway or Front Door, AWS ALB. Expose health endpoints with the built-in health checks middleware, and separate “alive” from “ready”.",
+code:`builder.Services.AddHealthChecks()
+    .AddSqlServer(connStr, tags: new[] { "ready" })
+    .AddRedis(redisConn,   tags: new[] { "ready" });
+
+app.MapHealthChecks("/health/live", new() { Predicate = _ => false });
+app.MapHealthChecks("/health/ready", new() {
+    Predicate = c => c.Tags.Contains("ready") });`,
+interview:"Mention that a liveness check should not depend on the database. If the DB blips and every instance fails liveness, the orchestrator restarts everything at once and turns a blip into an outage.",
+check:{q:"When would you prefer least-connections over round robin?",a:"When requests vary a lot in duration, such as a mix of quick reads and slow report exports, so busy instances don’t keep getting new work."}},
+
+{id:"caching",track:"foundations",title:"Caching",
+summary:"Keep the answer to an expensive question somewhere fast so you don’t ask it again. The hard part isn’t storing; it’s knowing when the answer has gone stale.",
+body:`<p><b>Where:</b> browser, CDN, reverse proxy, in-process memory, distributed cache (Redis), database buffer pool.</p>
+<p><b>Patterns:</b></p>
+<ul>
+<li><b>Cache-aside</b> (most common): read from cache; on miss, read DB and populate cache with a TTL.</li>
+<li><b>Write-through:</b> write to cache and DB together. Cache is always fresh; writes are slower.</li>
+<li><b>Write-behind:</b> write to cache, flush to DB later. Fast, but you can lose data.</li>
+</ul>
+<p><b>Problems you must name:</b> invalidation (update or delete the key on write), <b>stampede</b> (a hot key expires and a thousand requests hit the DB at once — fix with locking or a single-flight fetch), eviction policy (LRU is the usual default), and memory cost.</p>
+<p>In-process cache is fastest but each instance has its own copy, so they drift. A distributed cache is shared but costs a network hop.</p>`,
+gain:["Massive read latency and DB load reduction","Cheap to add for read-heavy data"],
+cost:["Stale data","Invalidation bugs are subtle","Another system to run"],
+dotnet:"IMemoryCache for per-instance, IDistributedCache with Redis for shared, and HybridCache (.NET 9+) which combines both and protects against stampedes. Output caching middleware caches whole HTTP responses.",
+code:`builder.Services.AddHybridCache();
+
+public async Task<Product> GetProduct(int id, CancellationToken ct) =>
+    await _cache.GetOrCreateAsync(
+        $"product:{id}",
+        async token => await _db.Products.AsNoTracking()
+                           .FirstAsync(p => p.Id == id, token),
+        new HybridCacheEntryOptions { Expiration = TimeSpan.FromMinutes(10) },
+        cancellationToken: ct);
+
+// on update: await _cache.RemoveAsync($"product:{id}");`,
+interview:"Always say what you cache, for how long, and how you invalidate. “Add Redis” alone is a weak answer; “cache-aside on product reads, 10-minute TTL, delete key on update” is a strong one.",
+check:{q:"What is a cache stampede and how do you prevent it?",a:"A popular key expires and many concurrent requests miss at once and all hit the database. Prevent it with a lock or single-flight fetch (HybridCache does this), staggered TTLs, or refreshing before expiry."}},
+
+{id:"cdn",track:"foundations",title:"CDN",
+summary:"A content delivery network copies your static files to servers near your users, so a user in Mumbai doesn’t fetch an image from Virginia.",
+body:`<p>Use it for images, JS, CSS, video and downloadable files. Some CDNs also cache API responses or run code at the edge.</p>
+<p><b>Pull CDN:</b> the edge fetches from your origin on first request, then caches. Easy. <b>Push CDN:</b> you upload content ahead of time. Better for large files that rarely change.</p>
+<p><b>Invalidation:</b> purging is slow and unreliable across hundreds of edges. The better pattern is versioned file names (<code>app.3f9a.js</code>) with a very long cache lifetime, so a new deploy means a new URL.</p>`,
+gain:["Lower latency worldwide","Offloads bandwidth from your servers","Absorbs traffic spikes"],
+cost:["Cost per GB","Stale content if versioning is wrong"],
+dotnet:"Azure Front Door or Azure CDN, CloudFront, Cloudflare. In Razor, asp-append-version adds a content hash to the URL automatically. Store user uploads in blob storage and front that with the CDN.",
+code:`<link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+app.UseStaticFiles(new StaticFileOptions {
+    OnPrepareResponse = ctx =>
+        ctx.Context.Response.Headers.CacheControl =
+            "public,max-age=31536000,immutable"
+});`,
+interview:"Pair “CDN” with “versioned asset names” in the same breath. It shows you know invalidation is the real problem.",
+check:{q:"Why prefer versioned file names over purging the CDN on deploy?",a:"Purges propagate slowly and unevenly across edges; a new URL is instantly a cache miss everywhere, so users never see a mix of old and new files."}},
+
+/* ---------------- DATA ---------------- */
+{id:"sql-nosql",track:"data",title:"SQL vs NoSQL",
+summary:"Choose a database by your access patterns and consistency needs, not by hype. For most business apps, a relational database is the right default.",
+body:`<p><b>Relational</b> (SQL Server, PostgreSQL): tables, joins, ACID transactions, flexible queries. Scales vertically very well and horizontally with effort.</p>
+<p><b>NoSQL families:</b></p>
+<ul>
+<li><b>Key-value</b> (Redis, DynamoDB): get and put by key. Extremely fast, no ad-hoc queries.</li>
+<li><b>Document</b> (Cosmos DB, MongoDB): JSON documents, flexible schema, good when you read a whole aggregate at once.</li>
+<li><b>Wide-column</b> (Cassandra): huge write throughput, queries designed around the partition key.</li>
+<li><b>Graph</b> (Neo4j): relationships are the data, like social networks or recommendations.</li>
+</ul>
+<p>NoSQL stores usually scale out more easily because they give up joins and cross-record transactions. You design the data around the queries, not the other way round.</p>`,
+gain:["SQL: integrity, flexible queries, mature tooling","NoSQL: horizontal scale, schema flexibility, predictable latency at scale"],
+cost:["SQL: harder to shard","NoSQL: must know queries up front; weaker transactions; data duplication"],
+dotnet:"EF Core with SQL Server or PostgreSQL (Npgsql) is the standard path. For documents, the Cosmos DB SDK or the EF Core Cosmos provider; MongoDB.Driver for Mongo. Using several stores for different jobs is called polyglot persistence.",
+code:null,
+interview:"Justify the choice with an access pattern: “Orders need transactions across order and payment rows, so PostgreSQL. The activity feed is append-heavy and read by user ID, so a wide-column or document store.”",
+check:{q:"Give one reason to pick a document store over SQL for a product catalogue.",a:"Products have very different attributes per category; a document per product avoids dozens of nullable columns or an EAV table, and the page reads the whole product at once."}},
+
+{id:"indexing",track:"data",title:"Indexing and query performance",
+summary:"An index is a sorted lookup structure that turns a full table scan into a quick search. It speeds up reads and slows down writes.",
+body:`<p>Most relational indexes are B-trees: lookups are logarithmic instead of linear. Without one, finding a row among 50 million means reading all of them.</p>
+<ul>
+<li><b>Composite index order matters.</b> An index on (CustomerId, CreatedAt) helps “orders for customer X by date” but not “all orders by date”.</li>
+<li><b>Covering index:</b> includes every column the query needs, so the table itself is never touched.</li>
+<li><b>Cost:</b> every insert and update must update every index. Ten indexes on a write-heavy table hurt.</li>
+</ul>
+<p>Before you shard or add replicas, check indexes and queries. A large share of “we need to scale” problems are missing indexes and N+1 queries.</p>`,
+gain:["Orders-of-magnitude faster reads","Often fixes problems you thought needed new infrastructure"],
+cost:["Slower writes","Storage","Wrong column order gives a false sense of safety"],
+dotnet:"Declare indexes in EF Core, read the generated SQL, and check execution plans. Watch for N+1 (lazy loading in a loop), use AsNoTracking for read-only queries, and project to DTOs instead of loading full entities.",
+code:`modelBuilder.Entity<Order>()
+    .HasIndex(o => new { o.CustomerId, o.CreatedAt })
+    .IncludeProperties(o => new { o.Status, o.Total }); // covering (SQL Server)
+
+var recent = await db.Orders.AsNoTracking()
+    .Where(o => o.CustomerId == id)
+    .OrderByDescending(o => o.CreatedAt)
+    .Select(o => new OrderDto(o.Id, o.Status, o.Total))
+    .Take(20).ToListAsync();`,
+interview:"When a DB is slow, your first answer should be “look at the query plan and indexes”, not “shard it”. Interviewers notice when you reach for the cheap fix first.",
+check:{q:"Index on (Status, CreatedAt). Does it help WHERE CreatedAt > '2026-01-01'?",a:"Mostly no. The leading column is Status, so a filter only on CreatedAt can’t seek into the index efficiently."}},
+
+{id:"replication",track:"data",title:"Replication",
+summary:"Keep copies of the same data on several machines: for read scale, for surviving a failure, or both.",
+body:`<p><b>Primary–replica</b> (leader–follower): all writes go to the primary, which streams changes to replicas. Reads can go to replicas. This is the workhorse setup.</p>
+<p><b>Synchronous</b> replication waits for a replica to confirm: no data loss on failover, slower writes. <b>Asynchronous</b> doesn’t wait: fast, but replicas lag and a failover can lose the last few writes.</p>
+<p><b>Replication lag</b> causes the classic bug: a user updates their profile, the next page reads from a replica, and the old value shows. Fix with read-your-own-writes: route that user’s reads to the primary for a short window after they write.</p>
+<p><b>Multi-primary</b> lets several nodes accept writes, which means conflicts you have to resolve. Avoid it unless you need writes in several regions.</p>`,
+gain:["Read scale","High availability through failover","Replicas for reporting and backups"],
+cost:["Doesn’t scale writes","Lag and stale reads","Failover is tricky to get right"],
+dotnet:"SQL Server Always On readable secondaries (ApplicationIntent=ReadOnly in the connection string), Azure SQL read scale-out, PostgreSQL streaming replicas. In code, a separate read-only DbContext pointed at the replica keeps intent explicit.",
+code:`builder.Services.AddDbContext<WriteDb>(o => o.UseSqlServer(cfg["Db:Primary"]));
+builder.Services.AddDbContext<ReadDb>(o => o
+    .UseSqlServer(cfg["Db:Replica"])          // ...;ApplicationIntent=ReadOnly
+    .UseQueryTrackingBehavior(QueryTrackingBehavior.NoTracking));
+
+// Reports and listing pages use ReadDb; checkout uses WriteDb.`,
+interview:"Say plainly: “replicas scale reads, not writes”. If the problem is write throughput, replicas are the wrong answer and you’re heading toward sharding.",
+check:{q:"A user edits their address and immediately sees the old one. What happened and how do you fix it?",a:"The read hit an async replica that hadn’t caught up. Route that user’s reads to the primary for a few seconds after a write, or read the updated value from the write response."}},
+
+{id:"sharding",track:"data",title:"Sharding and partitioning",
+summary:"Split one big dataset across several databases so each holds a slice. This is how you scale writes and storage past one machine — at a real cost in complexity.",
+body:`<p><b>Partitioning</b> splits a table within one database (by date, for example). <b>Sharding</b> spreads slices across separate servers.</p>
+<p><b>Strategies:</b></p>
+<ul>
+<li><b>Range</b> (A–M, N–Z, or by date): simple, but new data often lands on one shard, creating a hot spot.</li>
+<li><b>Hash</b> (hash of key mod N): even spread, but range queries hit every shard, and changing N moves most data.</li>
+<li><b>Directory</b> (lookup table of key to shard): flexible, but the directory becomes critical infrastructure.</li>
+</ul>
+<p><b>The shard key is the whole decision.</b> Pick one that spreads load evenly and keeps a request’s data on one shard (often tenant or customer ID). Cross-shard joins, transactions and unique constraints become your problem, and resharding later is painful.</p>`,
+gain:["Scales writes and storage","Smaller indexes per shard","Fault isolation"],
+cost:["Cross-shard queries and transactions","Hot shards","Resharding","Operational burden"],
+dotnet:"Cosmos DB does this for you once you choose a partition key. With SQL, you route in application code (a shard map), or use Citus for PostgreSQL. In multi-tenant SaaS, database-per-tenant is a natural shard boundary.",
+code:`public sealed class ShardRouter(IReadOnlyList<string> shardConnStrings)
+{
+    public string For(Guid customerId)
+    {
+        var h = (uint)customerId.GetHashCode();          // use a stable hash in real code
+        return shardConnStrings[(int)(h % (uint)shardConnStrings.Count)];
+    }
+}
+// Note: modulo routing reshuffles most keys when you add a shard.
+// See consistent hashing.`,
+interview:"Before proposing sharding, say you’ve exhausted indexes, caching, replicas and vertical scaling. Then name the shard key and what query becomes expensive because of it.",
+check:{q:"Why is sharding orders by order date usually a bad idea?",a:"All new orders land on the newest shard, so one shard takes all the writes while the others sit idle."}},
+
+{id:"consistent-hashing",track:"data",title:"Consistent hashing",
+summary:"A way to assign keys to servers so that adding or removing a server moves only a small fraction of keys instead of almost all of them.",
+body:`<p>With <code>hash(key) % N</code>, changing N from 4 to 5 remaps about 80% of keys. For a cache, that’s a sudden flood of misses; for a database, a huge data migration.</p>
+<p><b>The ring:</b> hash both servers and keys onto a circle of numbers. Each key belongs to the first server clockwise from it. Add a server and it takes keys only from its neighbour; remove one and only its keys move.</p>
+<p><b>Virtual nodes:</b> place each physical server at many points on the ring so the load evens out and a removed server’s keys spread over many others.</p>
+<p>Used by DynamoDB, Cassandra and many distributed caches. Redis Cluster uses a related idea: 16,384 fixed hash slots assigned to nodes.</p>`,
+gain:["Minimal data movement on scale changes","Even load with virtual nodes"],
+cost:["More complex than modulo","Needs a stable hash function"],
+dotnet:"You rarely write this yourself, since Redis Cluster and Cosmos handle it, but implementing it once makes the idea stick.",
+code:`public sealed class HashRing(int vnodes = 100)
+{
+    private readonly SortedDictionary<uint, string> _ring = new();
+
+    public void Add(string node)
+    {
+        for (var i = 0; i < vnodes; i++) _ring[Hash(node + "#" + i)] = node;
+    }
+
+    public string Get(string key)
+    {
+        var h = Hash(key);
+        foreach (var kv in _ring) if (kv.Key >= h) return kv.Value; // O(n) for clarity
+        return _ring.First().Value;                                   // wrap around
+    }
+
+    private static uint Hash(string s) =>
+        BitConverter.ToUInt32(System.Security.Cryptography.MD5.HashData(
+            System.Text.Encoding.UTF8.GetBytes(s)));
+}`,
+interview:"Explain the modulo problem first, then the ring, then virtual nodes. That order shows you understand why it exists, not just what it is.",
+check:{q:"Why add virtual nodes?",a:"With few real nodes, positions on the ring are uneven, so some nodes own much more of the keyspace. Many virtual points per node smooth the distribution."}},
+
+{id:"cap",track:"data",title:"CAP theorem and consistency",
+summary:"When the network splits, a distributed system must choose: refuse some requests to stay consistent, or answer them and risk returning stale data.",
+body:`<p><b>C</b>onsistency (every read sees the latest write), <b>A</b>vailability (every request gets a response), <b>P</b>artition tolerance (the system keeps working when nodes can’t talk). Partitions happen whether you like it or not, so the real choice is C or A <i>during</i> a partition.</p>
+<p><b>PACELC</b> adds the everyday case: when there’s no partition, you still trade latency against consistency.</p>
+<p><b>Consistency models</b>, from strongest to weakest: strong (linearizable), bounded staleness, session (read your own writes), causal, eventual.</p>
+<p>The useful skill is assigning a model per feature. Account balance and inventory count: strong. Like counts, view counts, recommendations: eventual is fine.</p>`,
+gain:["A shared vocabulary for trade-offs","Lets you relax consistency where it’s cheap"],
+cost:["Often misquoted as “pick two of three”","Strong consistency costs latency and availability"],
+dotnet:"Cosmos DB exposes five consistency levels (strong, bounded staleness, session, consistent prefix, eventual) — a concrete way to see the trade-off. Session consistency is its default because read-your-own-writes is what users notice.",
+code:null,
+interview:"Never say “I’ll pick CA”. Say “partitions will happen, so for payments I choose consistency and accept rejecting requests; for the feed I choose availability.”",
+check:{q:"Which consistency level fits a ‘likes’ counter, and which fits a seat booking?",a:"Likes: eventual. Seat booking: strong, because two people must never get the same seat."}},
+
+{id:"distributed-tx",track:"data",title:"Distributed transactions: saga and outbox",
+summary:"When one business action spans several services or databases, a single ACID transaction is no longer available. Sagas and the outbox pattern are how you stay correct anyway.",
+body:`<p><b>Two-phase commit (2PC)</b> coordinates a transaction across databases, but it blocks while waiting, needs every participant to support it, and the coordinator is a single point of failure. Rarely used across microservices.</p>
+<p><b>Saga:</b> a chain of local transactions, each with a <b>compensating action</b> to undo it. Reserve stock → charge card → create shipment. If shipping fails: refund card, release stock.</p>
+<ul><li><b>Choreography:</b> each service reacts to events. Loosely coupled, but the flow is hard to see.</li>
+<li><b>Orchestration:</b> a central coordinator tells each step what to do. Easier to follow and debug.</li></ul>
+<p><b>The dual-write problem:</b> you save an order and then publish “OrderCreated”. If the app crashes between the two, the DB and the world disagree. <b>Transactional outbox:</b> write the event into an outbox table in the same DB transaction; a background process publishes it afterwards.</p>`,
+gain:["Correctness without distributed locks","Services stay independent"],
+cost:["Eventual consistency in between steps","Compensations are business logic you must design","Harder to debug"],
+dotnet:"MassTransit (state machine sagas and a built-in EF Core transactional outbox), NServiceBus, Wolverine. Or a hand-rolled outbox table plus a BackgroundService.",
+code:`await using var tx = await db.Database.BeginTransactionAsync();
+db.Orders.Add(order);
+db.Outbox.Add(new OutboxMessage {
+    Type = "OrderCreated",
+    Payload = JsonSerializer.Serialize(new OrderCreated(order.Id, order.Total))
+});
+await db.SaveChangesAsync();
+await tx.CommitAsync();
+// A BackgroundService reads unsent Outbox rows, publishes them, marks them sent.
+// Consumers must be idempotent: a row may be published twice.`,
+interview:"If you draw two services that both write, the interviewer will ask “what if the second call fails?”. Answer with saga plus outbox before they ask.",
+check:{q:"What problem does the outbox pattern solve?",a:"The dual write: saving data and publishing an event can’t both be atomic across a DB and a broker. Writing the event to the same DB in the same transaction makes them atomic."}},
+
+/* ---------------- COMMUNICATION ---------------- */
+{id:"api-design",track:"communication",title:"API design: REST, gRPC, GraphQL",
+summary:"Pick the protocol by who calls it. Public and browser clients: REST. Service to service with high volume: gRPC. Many different clients wanting different shapes: GraphQL.",
+body:`<ul>
+<li><b>REST over HTTP/JSON:</b> universal, cacheable, easy to debug. Chatty for complex screens.</li>
+<li><b>gRPC:</b> binary Protobuf over HTTP/2, strongly typed contracts, streaming, fast. Poor fit for browsers without a proxy.</li>
+<li><b>GraphQL:</b> clients ask for exactly the fields they need. Flexible, but caching and query cost control get harder.</li>
+</ul>
+<p><b>Pagination:</b> offset (<code>?page=500</code>) is simple but slow deep in large tables and skips or repeats rows when data changes. Cursor (keyset) pagination uses the last seen key and stays fast.</p>
+<p><b>Versioning:</b> URL (<code>/v2/</code>) or header. Only break contracts when you must. <b>Idempotency:</b> GET, PUT and DELETE should be safe to retry; POST needs an idempotency key.</p>`,
+gain:["Clear contracts reduce coupling","Right protocol saves latency and bandwidth"],
+cost:["gRPC and GraphQL add tooling","Versioning is a long-term commitment"],
+dotnet:"Minimal APIs or controllers for REST, Grpc.AspNetCore for gRPC, Hot Chocolate for GraphQL, Asp.Versioning for versioning, built-in OpenAPI document generation.",
+code:`// Cursor pagination: stays fast on page 10,000
+app.MapGet("/orders", async (long? after, int limit, AppDb db) =>
+{
+    var q = db.Orders.AsNoTracking().OrderBy(o => o.Id);
+    var page = await (after is null ? q : q.Where(o => o.Id > after))
+        .Take(Math.Clamp(limit, 1, 100)).ToListAsync();
+    return new { items = page, next = page.LastOrDefault()?.Id };
+});`,
+interview:"Write two or three endpoints with method, path, request and response before drawing architecture. It anchors the rest of the discussion.",
+check:{q:"Why does offset pagination get slow on deep pages?",a:"The database must read and discard all the skipped rows; OFFSET 1,000,000 scans a million rows. Keyset pagination seeks straight to the cursor via the index."}},
+
+{id:"queues",track:"communication",title:"Message queues and event-driven design",
+summary:"Put work in a queue instead of doing it in the request. The user gets a fast response, spikes get smoothed out, and a slow downstream system can’t take you down with it.",
+body:`<ul>
+<li><b>Queue (point-to-point):</b> each message handled by one consumer. Good for jobs like “send this email”.</li>
+<li><b>Pub/sub topic:</b> each subscriber gets its own copy. “OrderPlaced” goes to billing, email and analytics independently.</li>
+<li><b>Log (Kafka, Event Hubs):</b> messages are kept and can be replayed; consumers track their own position. Great for event streams and high throughput.</li>
+</ul>
+<p><b>Delivery guarantees:</b> at-most-once (may lose), at-least-once (may duplicate — the usual default), exactly-once (expensive and limited). Design consumers to be <b>idempotent</b>.</p>
+<p><b>Also know:</b> dead-letter queues for poison messages, retries with backoff, ordering (usually only within a partition or session), and backpressure when consumers fall behind.</p>`,
+gain:["Fast responses","Absorbs spikes","Decouples services","Independent scaling of workers"],
+cost:["Eventual consistency","Duplicates and ordering issues","Harder to trace and debug"],
+dotnet:"Azure Service Bus, RabbitMQ, Kafka (Confluent.Kafka), Amazon SQS. MassTransit or NServiceBus on top for retries, outbox and sagas. For in-process background work, System.Threading.Channels with a BackgroundService.",
+code:`public sealed class SendOrderEmail(IEmailSender email) : IConsumer<OrderPlaced>
+{
+    public async Task Consume(ConsumeContext<OrderPlaced> ctx)
+    {
+        await email.SendConfirmation(ctx.Message.OrderId, ctx.CancellationToken);
+    }
+}
+
+builder.Services.AddMassTransit(x =>
+{
+    x.AddConsumer<SendOrderEmail>();
+    x.UsingAzureServiceBus((ctx, cfg) => {
+        cfg.Host(builder.Configuration["ServiceBus"]);
+        cfg.UseMessageRetry(r => r.Exponential(5, TimeSpan.FromSeconds(1),
+                                    TimeSpan.FromMinutes(1), TimeSpan.FromSeconds(2)));
+        cfg.ConfigureEndpoints(ctx);
+    });
+});`,
+interview:"Any time a request does something slow that the user doesn’t need to wait for (email, PDF, thumbnail, analytics), move it to a queue and say “at-least-once, so the consumer is idempotent”.",
+check:{q:"Queue vs topic: which do you use for ‘OrderPlaced’ that three services care about?",a:"A topic (pub/sub), so each of the three subscribers gets its own copy."}},
+
+{id:"realtime",track:"communication",title:"Real-time communication",
+summary:"When the server needs to push updates (chat, live tracking, notifications), you choose between polling, server-sent events and WebSockets.",
+body:`<ul>
+<li><b>Short polling:</b> client asks every N seconds. Simple, wasteful, and laggy.</li>
+<li><b>Long polling:</b> server holds the request until there’s news. Works everywhere, awkward at scale.</li>
+<li><b>Server-sent events:</b> one-way stream from server over HTTP. Good for feeds and notifications.</li>
+<li><b>WebSockets:</b> persistent two-way connection. Best for chat, games and collaboration.</li>
+</ul>
+<p><b>Scaling problem:</b> a user is connected to server A, but the event happens on server B. You need a <b>backplane</b> (Redis pub/sub or a managed service) so any server can reach any connection. Persistent connections also change load balancing and capacity planning: you count concurrent connections, not just requests per second.</p>`,
+gain:["Instant updates","Less wasted traffic than polling"],
+cost:["Stateful connections complicate scaling","Reconnect and missed-message handling"],
+dotnet:"SignalR is the .NET answer: it negotiates WebSockets and falls back to SSE or long polling. Scale out with the Redis backplane or offload connections entirely to Azure SignalR Service.",
+code:`builder.Services.AddSignalR()
+    .AddStackExchangeRedis(builder.Configuration["Redis"]);
+
+public sealed class OrderHub : Hub
+{
+    public Task Track(string orderId) =>
+        Groups.AddToGroupAsync(Context.ConnectionId, $"order-{orderId}");
+}
+
+// Anywhere, on any instance:
+await hub.Clients.Group($"order-{id}").SendAsync("status", newStatus);`,
+interview:"Mention the backplane unprompted. Most candidates draw WebSockets on a single box and forget that the sender and receiver are on different servers.",
+check:{q:"Why does SignalR need a backplane when you run three instances?",a:"A client is connected to one instance; a message raised on another instance must be forwarded to the instance holding that connection."}},
+
+{id:"gateway",track:"communication",title:"API gateway and reverse proxy",
+summary:"One front door for all your services, handling the cross-cutting work so each service doesn’t have to.",
+body:`<p>A <b>reverse proxy</b> sits in front of servers and forwards requests to them (the client doesn’t know which server answered). A <b>forward proxy</b> sits in front of clients (like a corporate proxy). An <b>API gateway</b> is a reverse proxy with API features: routing, authentication, rate limiting, TLS termination, request aggregation, caching and logging.</p>
+<p><b>Backend for frontend (BFF):</b> a separate gateway per client type (mobile, web) that shapes responses for that client.</p>
+<p>Keep business logic out of the gateway. It should route and protect, not decide.</p>`,
+gain:["Single place for auth, limits and TLS","Clients don’t need to know internal topology"],
+cost:["Extra hop","Can become a bottleneck or a dumping ground for logic"],
+dotnet:"YARP for a code-first gateway in .NET, Ocelot (older, simpler), Azure API Management for a managed product with developer portal and policies.",
+code:`// appsettings.json (YARP)
+"ReverseProxy": {
+  "Routes": {
+    "orders": { "ClusterId": "orders", "Match": { "Path": "/api/orders/{**rest}" } }
+  },
+  "Clusters": {
+    "orders": { "Destinations": {
+      "a": { "Address": "http://orders-1:8080" },
+      "b": { "Address": "http://orders-2:8080" } } }
+  }
+}
+// Program.cs
+builder.Services.AddReverseProxy().LoadFromConfig(cfg.GetSection("ReverseProxy"));
+app.MapReverseProxy();`,
+interview:"Put the gateway in your diagram as the place where auth and rate limiting live. It gives you a clean answer when asked “where do you enforce that?”",
+check:{q:"What’s the difference between an API gateway and a load balancer?",a:"A load balancer spreads traffic across copies of the same service. A gateway routes to different services and adds API concerns like auth, rate limits and aggregation. Gateways often sit in front of load balancers."}},
+
+{id:"microservices",track:"communication",title:"Monolith, modular monolith, microservices",
+summary:"Microservices solve an organisational problem — many teams deploying independently — and charge you a heavy technical price for it. Most systems should start as a well-structured monolith.",
+body:`<ul>
+<li><b>Monolith:</b> one deployable. Simple to build, test, deploy and debug. Becomes tangled if boundaries aren’t enforced.</li>
+<li><b>Modular monolith:</b> one deployable, but strict internal modules with their own data and public interfaces. Most of the design benefits, little of the operational cost.</li>
+<li><b>Microservices:</b> independently deployable services, each owning its data. Independent scaling and team autonomy, paid for with network calls, distributed transactions, eventual consistency, versioning and much heavier operations.</li>
+</ul>
+<p><b>Database per service</b> is the rule that makes microservices real. If services share tables, you have a distributed monolith: all the costs, none of the independence.</p>
+<p>Split along business capabilities (bounded contexts from domain-driven design), not technical layers.</p>`,
+gain:["Independent deploys and scaling","Team autonomy","Fault isolation"],
+cost:["Network failures everywhere","Distributed data and transactions","Observability and DevOps burden"],
+dotnet:"A modular monolith in .NET: one host, separate class library projects per module, internal types, and architecture tests (NetArchTest) that fail the build on illegal references. When you do go distributed, .NET Aspire helps run and observe multiple services locally; Dapr offers portable building blocks.",
+code:`// Architecture test: Orders module must not reach into Billing internals
+var result = Types.InAssembly(typeof(OrdersModule).Assembly)
+    .ShouldNot().HaveDependencyOn("ShopKart.Billing.Infrastructure")
+    .GetResult();
+Assert.True(result.IsSuccessful);`,
+interview:"If asked to design something for a small team, saying “modular monolith first, with these seams so we can extract services later” is a mature answer, not a weak one.",
+check:{q:"What’s a distributed monolith?",a:"Services that are deployed separately but share a database or must be deployed together — you pay microservice costs without getting independence."}},
+
+/* ---------------- RELIABILITY ---------------- */
+{id:"rate-limiting",track:"reliability",title:"Rate limiting",
+summary:"Cap how many requests a client can make in a time window, to protect the system from abuse, bugs and noisy neighbours.",
+body:`<p><b>Algorithms:</b></p>
+<ul>
+<li><b>Token bucket:</b> tokens refill at a steady rate; each request spends one. Allows short bursts. The most common choice.</li>
+<li><b>Leaky bucket:</b> requests drain at a fixed rate. Smooth output, no bursts.</li>
+<li><b>Fixed window:</b> N requests per minute. Simple, but allows 2N across a window boundary.</li>
+<li><b>Sliding window:</b> fixes the boundary issue at a little more cost.</li>
+</ul>
+<p><b>Key by</b> user ID, API key or IP. With many instances, counters must be shared (Redis) or each instance gets a slice of the limit. Respond with HTTP 429 and a Retry-After header.</p>`,
+gain:["Protects against abuse and runaway clients","Fairness between tenants","Cost control"],
+cost:["Legitimate bursts can be rejected","Distributed counters add latency"],
+dotnet:"ASP.NET Core has built-in rate limiting middleware (fixed window, sliding window, token bucket, concurrency). For limits shared across instances, use a Redis-backed limiter or enforce at the gateway or API Management.",
+code:`builder.Services.AddRateLimiter(o =>
+{
+    o.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    o.AddPolicy("per-user", ctx => RateLimitPartition.GetTokenBucketLimiter(
+        ctx.User.Identity?.Name ?? ctx.Connection.RemoteIpAddress?.ToString() ?? "anon",
+        _ => new TokenBucketRateLimiterOptions {
+            TokenLimit = 20, TokensPerPeriod = 10,
+            ReplenishmentPeriod = TimeSpan.FromSeconds(1) }));
+});
+app.UseRateLimiter();
+app.MapGet("/search", Search).RequireRateLimiting("per-user");`,
+interview:"Rate limiter design is itself a common interview question. Cover the algorithm, the key, where it runs, how counters are shared, and what the client sees.",
+check:{q:"Why does fixed window allow up to 2× the limit?",a:"A client can send N requests at the end of one window and N more at the start of the next, all within a few seconds."}},
+
+{id:"resilience",track:"reliability",title:"Resilience: timeouts, retries, circuit breakers",
+summary:"Every network call will eventually fail or hang. Resilience patterns stop one slow dependency from dragging your whole system down.",
+body:`<ul>
+<li><b>Timeouts:</b> the most important one. Without them, threads and connections pile up waiting forever.</li>
+<li><b>Retries</b> with exponential backoff and jitter, for transient failures only. Retrying everything immediately creates a <b>retry storm</b> that finishes off a struggling service.</li>
+<li><b>Circuit breaker:</b> after repeated failures, stop calling the dependency for a while and fail fast. Then let a few test calls through.</li>
+<li><b>Bulkhead:</b> limit concurrent calls per dependency so one bad dependency can’t consume all resources.</li>
+<li><b>Fallback:</b> return cached data, a default, or a degraded feature.</li>
+</ul>
+<p>Only retry operations that are safe to repeat, which leads directly to idempotency.</p>`,
+gain:["Failures stay contained","Faster recovery","Better user experience under partial outage"],
+cost:["Retries add load and latency","Tuning thresholds takes real data"],
+dotnet:"Polly v8 and Microsoft.Extensions.Http.Resilience. AddStandardResilienceHandler gives you rate limiter, total timeout, retry, circuit breaker and per-attempt timeout with sensible defaults on any HttpClient.",
+code:`builder.Services.AddHttpClient<PaymentClient>(c =>
+        c.BaseAddress = new Uri(cfg["Payments:Url"]!))
+    .AddStandardResilienceHandler(o =>
+    {
+        o.AttemptTimeout.Timeout = TimeSpan.FromSeconds(2);
+        o.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(8);
+        o.Retry.MaxRetryAttempts = 3;               // backoff + jitter by default
+        o.CircuitBreaker.FailureRatio = 0.5;
+        o.CircuitBreaker.BreakDuration = TimeSpan.FromSeconds(15);
+    });`,
+interview:"For every dependency on your diagram, be ready to say what happens when it is slow (not just down). Slow is the more dangerous failure.",
+check:{q:"Why add jitter to retry backoff?",a:"Without it, all clients that failed together retry together in synchronised waves, hammering the recovering service. Jitter spreads them out."}},
+
+{id:"idempotency",track:"reliability",title:"Idempotency",
+summary:"An operation is idempotent if doing it twice has the same effect as doing it once. In distributed systems, everything gets done twice eventually.",
+body:`<p>Duplicates come from client retries after timeouts, users double-clicking, load balancers retrying, and at-least-once queues redelivering.</p>
+<p><b>Techniques:</b></p>
+<ul>
+<li><b>Idempotency key:</b> client sends a unique key with the request; the server stores the key and result, and returns the stored result on repeats. This is how payment APIs work.</li>
+<li><b>Natural keys and unique constraints:</b> let the database reject the duplicate.</li>
+<li><b>Conditional updates:</b> “set status to Paid where status is Pending”.</li>
+<li><b>Processed-message table</b> for queue consumers.</li>
+</ul>`,
+gain:["Safe retries","Correctness with at-least-once delivery"],
+cost:["Key storage and cleanup","Must handle concurrent duplicates, not just sequential ones"],
+dotnet:"Store keys in the same transaction as the effect, with a unique index on the key so concurrent duplicates fail at the database rather than slipping through a check-then-insert race.",
+code:`app.MapPost("/payments", async (PayRequest req,
+    [FromHeader(Name = "Idempotency-Key")] string key, AppDb db) =>
+{
+    var existing = await db.Idempotency.FindAsync(key);
+    if (existing is not null) return Results.Ok(existing.Response);
+
+    await using var tx = await db.Database.BeginTransactionAsync();
+    var result = await ChargeAsync(req);
+    db.Idempotency.Add(new IdempotencyRecord(key, result)); // unique index on Key
+    await db.SaveChangesAsync();                            // concurrent dup -> throws
+    await tx.CommitAsync();
+    return Results.Ok(result);
+});`,
+interview:"Whenever money, inventory or messages are involved, say “idempotency key” before you’re asked. It’s one of the clearest signals of real-world experience.",
+check:{q:"Why isn’t ‘check if key exists, then insert’ enough on its own?",a:"Two concurrent requests can both pass the check before either inserts. A unique constraint makes the database the referee."}},
+
+{id:"observability",track:"reliability",title:"Observability",
+summary:"Logs, metrics and traces let you answer “what is broken and why” in a system you can’t step through with a debugger.",
+body:`<ul>
+<li><b>Logs:</b> structured events (JSON with fields, not free text). Include a correlation ID.</li>
+<li><b>Metrics:</b> numbers over time. For services use <b>RED</b> (rate, errors, duration); for resources use <b>USE</b> (utilisation, saturation, errors).</li>
+<li><b>Traces:</b> one request followed across every service and database call, with timings. Essential once you have more than one service.</li>
+</ul>
+<p><b>SLI</b> is what you measure (p99 latency), <b>SLO</b> is your target (p99 under 300 ms for 99.9% of the month), <b>SLA</b> is the contract with consequences. The gap between 100% and your SLO is your <b>error budget</b>.</p>
+<p>Alert on symptoms users feel (error rate, latency), not on every CPU spike. Look at p95 and p99, not averages; averages hide the slow requests.</p>`,
+gain:["Fast incident diagnosis","Data for capacity planning","Objective reliability targets"],
+cost:["Storage and tooling cost","Alert fatigue if done badly"],
+dotnet:"ILogger with Serilog for structured logs, OpenTelemetry for metrics and traces (ASP.NET Core, HttpClient, EF Core and SQL client are instrumented), exported to Application Insights, Grafana, Jaeger or the .NET Aspire dashboard.",
+code:`builder.Services.AddOpenTelemetry()
+    .ConfigureResource(r => r.AddService("orders-api"))
+    .WithTracing(t => t
+        .AddAspNetCoreInstrumentation()
+        .AddHttpClientInstrumentation()
+        .AddEntityFrameworkCoreInstrumentation()
+        .AddOtlpExporter())
+    .WithMetrics(m => m
+        .AddAspNetCoreInstrumentation()
+        .AddRuntimeInstrumentation()
+        .AddOtlpExporter());`,
+interview:"End every design by saying how you’d know it’s healthy: “dashboards on RED metrics per service, tracing across the checkout flow, alert when p99 checkout latency breaks the SLO.”",
+check:{q:"Why monitor p99 latency rather than the average?",a:"The average hides the slowest 1% of requests, and those are often your most active users or your most important calls."}},
+
+{id:"security",track:"reliability",title:"Authentication, authorisation and secrets",
+summary:"Authentication proves who you are. Authorisation decides what you can do. In distributed systems, tokens carry that answer between services.",
+body:`<ul>
+<li><b>Sessions:</b> server stores state, client holds a cookie ID. Easy to revoke; needs a shared session store when scaled.</li>
+<li><b>JWT:</b> signed token carrying claims, verified without a database lookup. Scales easily, but can’t be revoked before expiry — keep lifetimes short and use refresh tokens.</li>
+<li><b>OAuth 2.0</b> is for delegated authorisation; <b>OpenID Connect</b> adds login on top. Use an identity provider instead of building your own.</li>
+</ul>
+<p><b>Basics that still matter:</b> HTTPS everywhere, least privilege for services and DB accounts, secrets in a vault (never in config files or source control), input validation, and audit logs for sensitive actions.</p>`,
+gain:["Stateless verification scales","Central identity reduces duplicated logic"],
+cost:["JWT revocation is hard","Token size grows with claims","Identity provider becomes critical infrastructure"],
+dotnet:"ASP.NET Core authentication with JwtBearer, Microsoft Entra ID or Entra External ID, Duende IdentityServer or Keycloak as identity providers, policy-based authorisation, Azure Key Vault for secrets, managed identities to avoid connection-string passwords.",
+code:`builder.Services.AddAuthentication().AddJwtBearer(o =>
+{
+    o.Authority = cfg["Auth:Authority"];   // your identity provider
+    o.Audience  = "orders-api";
+});
+builder.Services.AddAuthorization(o =>
+    o.AddPolicy("CanRefund", p => p.RequireClaim("scope", "orders.refund")));
+
+app.MapPost("/orders/{id}/refund", Refund).RequireAuthorization("CanRefund");`,
+interview:"When you choose JWT, state the revocation trade-off and your mitigation (short expiry, refresh tokens, a deny-list for emergencies).",
+check:{q:"A user’s account is compromised. Why is that harder to handle with long-lived JWTs than with sessions?",a:"A session can be deleted server-side immediately. A JWT stays valid until it expires because services verify it without checking a central store."}},
+
+{id:"storage-search",track:"reliability",title:"Blob storage and search",
+summary:"Files belong in object storage, not your database. Full-text search belongs in a search engine, not a LIKE query.",
+body:`<p><b>Object (blob) storage</b> such as Azure Blob Storage or S3 is cheap, durable and effectively unlimited. Store the file there and keep only its URL and metadata in your database.</p>
+<p><b>Direct upload with signed URLs:</b> the API issues a short-lived signed URL, and the client uploads straight to storage. Your servers never carry the bytes.</p>
+<p><b>Search engines</b> (Elasticsearch, OpenSearch, Azure AI Search) build an <b>inverted index</b>: a map from each word to the documents containing it. That gives you relevance ranking, typo tolerance, facets and fast text search. Keep the database as the source of truth and update the index from change events, accepting a short delay.</p>`,
+gain:["Cheap, durable file storage","Fast, relevant search","Servers freed from file traffic"],
+cost:["Search index is eventually consistent","Another system to sync and operate"],
+dotnet:"Azure.Storage.Blobs with SAS tokens for signed uploads, the Elastic .NET client or Azure.Search.Documents for search, with index updates driven by the outbox or change feed.",
+code:`public Uri GetUploadUrl(string fileName)
+{
+    var blob = _container.GetBlobClient($"uploads/{Guid.NewGuid()}/{fileName}");
+    return blob.GenerateSasUri(
+        BlobSasPermissions.Create | BlobSasPermissions.Write,
+        DateTimeOffset.UtcNow.AddMinutes(10));
+}
+// Client PUTs the file directly to this URL, then tells the API it's done.`,
+interview:"If a design involves user uploads, say “signed URL, direct to blob storage, CDN in front for reads”. It removes a whole class of scaling problems.",
+check:{q:"Why not store product images as varbinary in SQL Server?",a:"It bloats the database, backups and buffer pool, makes the DB serve heavy bytes it’s bad at serving, and can’t be put behind a CDN easily. Blob storage is cheaper and built for it."}},
+
+/* ---------------- CASES ---------------- */
+{id:"case-url",track:"cases",title:"Case study: URL shortener",
+summary:"The classic warm-up. It looks trivial, but it tests estimation, ID generation, caching and read-heavy design.",
+body:`<p><b>Requirements:</b> create a short link, redirect to the long URL, optional expiry, click counts. Very read-heavy (100 reads per write is a fair assumption). Redirects must be fast and highly available.</p>
+<p><b>Estimates:</b> 100M new links per month ≈ 40 writes/s; 100× reads ≈ 4,000 redirects/s average. 100M × 12 months × 5 years × 500 bytes ≈ 3 TB. Seven base62 characters give 62⁷ ≈ 3.5 trillion codes — plenty.</p>
+<p><b>API:</b> <code>POST /links {url} → {code}</code> and <code>GET /{code} → 301/302</code>.</p>
+<p><b>ID generation (the deep dive):</b></p>
+<ul>
+<li>Hash the URL and take 7 chars: collisions need checking and retrying.</li>
+<li>Global counter encoded in base62: no collisions, but the counter is a bottleneck and codes are guessable. Fix by giving each server a range of IDs (e.g. 1,000 at a time).</li>
+<li>Snowflake-style IDs (time + machine + sequence): unique without coordination.</li>
+</ul>
+<p><b>Read path:</b> CDN or edge cache → Redis cache-aside on code → database. Most traffic hits a small set of popular links, so the cache hit rate is very high.</p>
+<p><b>301 vs 302:</b> 301 is cached by browsers (less load, but you lose click analytics); 302 hits you every time. Choose based on whether analytics matter.</p>
+<p><b>Analytics:</b> don’t write a row per click in the redirect path. Publish click events to a queue or log and aggregate asynchronously.</p>`,
+gain:["Exercises the whole toolkit in a small problem"],
+cost:["Easy to under-explain ID generation"],
+dotnet:"Minimal API for redirect, Redis via HybridCache, a key-value or simple relational table keyed by code, click events to Event Hubs or Kafka.",
+code:`const string Alphabet = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+static string ToBase62(long n)
+{
+    var sb = new StringBuilder();
+    do { sb.Insert(0, Alphabet[(int)(n % 62)]); n /= 62; } while (n > 0);
+    return sb.ToString();
+}
+
+app.MapGet("/{code}", async (string code, HybridCache cache, LinkStore store,
+                             IPublishEndpoint bus) =>
+{
+    var url = await cache.GetOrCreateAsync($"link:{code}",
+        async ct => await store.FindAsync(code, ct));
+    if (url is null) return Results.NotFound();
+    await bus.Publish(new LinkClicked(code, DateTime.UtcNow));
+    return Results.Redirect(url, permanent: false); // 302 keeps analytics
+});`,
+interview:"Spend most of your deep-dive time on ID generation and the read path. That’s where the interviewer is looking.",
+check:{q:"Why might you deliberately choose 302 over 301?",a:"Browsers cache 301 redirects, so repeat clicks never reach you and you can’t count them or change the destination. 302 keeps every click visible."}},
+
+{id:"case-feed",track:"cases",title:"Case study: news feed",
+summary:"Show each user recent posts from people they follow. The core decision is when to build the feed: at write time or at read time.",
+body:`<p><b>Fan-out on write (push):</b> when someone posts, insert the post ID into every follower’s precomputed feed (often a Redis list). Reading is instant. But a celebrity with 50 million followers turns one post into 50 million writes.</p>
+<p><b>Fan-out on read (pull):</b> when a user opens the feed, fetch recent posts from everyone they follow and merge. Writes are cheap; reads are slow and expensive for users who follow many accounts.</p>
+<p><b>Hybrid (what real systems do):</b> push for normal accounts, pull for celebrities, and merge both at read time. Skip fan-out to inactive users entirely.</p>
+<p><b>Other pieces:</b> post content in a store keyed by post ID; feeds store only IDs; media in blob storage behind a CDN; ranking as a separate service; fan-out work done by queue workers so posting stays fast; cursor pagination for scrolling.</p>`,
+gain:["Shows you can reason about skewed load","Combines queues, caches, storage and pagination"],
+cost:["Hybrid logic is complex","Feeds are eventually consistent"],
+dotnet:"Post API publishes PostCreated; fan-out workers (BackgroundService or MassTransit consumers) push IDs into Redis lists per follower; the feed API reads the list, merges celebrity posts, and hydrates posts from cache.",
+code:`public sealed class FanOut(IFollowStore follows, IDatabase redis) : IConsumer<PostCreated>
+{
+    public async Task Consume(ConsumeContext<PostCreated> ctx)
+    {
+        var p = ctx.Message;
+        if (await follows.IsCelebrity(p.AuthorId)) return;   // pulled at read time
+
+        await foreach (var followerId in follows.ActiveFollowers(p.AuthorId))
+        {
+            var key = $"feed:{followerId}";
+            await redis.ListLeftPushAsync(key, p.PostId);
+            await redis.ListTrimAsync(key, 0, 799);           // keep latest 800
+        }
+    }
+}`,
+interview:"Bring up the celebrity problem yourself. It’s the turning point of this question, and naming the hybrid approach early shows you’ve seen it before.",
+check:{q:"Why not use fan-out on write for every account?",a:"Accounts with millions of followers would generate millions of writes per post, delaying feeds and overloading storage. Those are better pulled at read time."}}
+];
+
+/* ---------------- GAME DATA ---------------- */
+const PIECES = ["Bigger server","Load balancer","Redis cache","CDN","Read replica","Message queue","Idempotency keys","Circuit breaker","Rate limiter","Shards","Consistent hashing","Atomic stock update","Distributed tracing","Saga + outbox","SignalR backplane"];
+
+const SCENES = [
+{stage:"1,000 users · one server",title:"CPU hits 90% during the weekend sale.",sit:"ShopKart runs on one VM with the ASP.NET Core app and SQL Server together. It’s a small team of three. Sales are growing.",
+ opts:[["Upgrade to a bigger VM and move SQL to its own managed instance","right"],["Rewrite into microservices now so each part scales","wrong"],["Add Kafka between the web app and the database","wrong"],["Shard the database across four servers","wrong"]],
+ piece:"Bigger server",concept:"scaling",
+ why:"At this size, vertical scaling is cheap, fast and correct. Microservices, Kafka and sharding all add huge complexity to solve a problem you don’t have yet."},
+{stage:"50,000 users · three app instances",title:"After adding two more instances, users get logged out at random.",sit:"You put the app behind a load balancer. Logins work, then a few clicks later people are back at the login page or see antiforgery errors.",
+ opts:[["Use sticky sessions on the load balancer","partial"],["Move session state to Redis and share Data Protection keys","right"],["Go back to one bigger server","wrong"],["Increase the session timeout","wrong"]],
+ piece:"Load balancer",concept:"scaling",
+ why:"The instances keep session in memory and each has its own Data Protection keys. Making the app tier stateless fixes it properly. Sticky sessions hide the problem but break balancing and lose sessions when an instance dies."},
+{stage:"200,000 users",title:"The database is at 85% CPU, and 95% of queries are product page reads.",sit:"Product details change a few times a day. Every page view runs the same handful of queries.",
+ opts:[["Add more app instances","wrong"],["Cache product data in Redis with cache-aside and a TTL, invalidating on update","right"],["Migrate everything to a NoSQL database","wrong"],["Add an index to every column","partial"]],
+ piece:"Redis cache",concept:"caching",
+ why:"Read-heavy data that changes rarely is the ideal caching case. More app instances just send more queries to the struggling DB. Indexes help specific queries, but indexing every column slows writes and doesn’t remove repeated reads."},
+{stage:"200,000 users · going national",title:"Users in other regions say product images take five seconds to load.",sit:"Images are served from the app servers in one data centre.",
+ opts:[["Put images in blob storage behind a CDN with versioned file names","right"],["Store images in SQL Server so they’re backed up","wrong"],["Buy a bigger network plan for the app servers","partial"],["Lower the image quality","partial"]],
+ piece:"CDN",concept:"cdn",
+ why:"Distance is the problem, so moving files closer to users is the fix. Bandwidth and compression help a little, but can’t beat physics. Images in SQL make everything worse."},
+{stage:"500,000 users",title:"Monthly sales reports lock up the database for 20 minutes.",sit:"Finance runs heavy reporting queries on the same primary database that takes customer orders.",
+ opts:[["Shard the database","wrong"],["Run reports on a read replica, accepting a few seconds of lag","right"],["Cache the report results","partial"],["Delete orders older than a year","wrong"]],
+ piece:"Read replica",concept:"replication",
+ why:"Reports are reads that can tolerate slightly stale data, which is exactly what replicas are for. Sharding is a write-scaling tool and far too heavy here. Caching helps repeat runs but not the first expensive one."},
+{stage:"500,000 users",title:"Checkout takes four seconds, and when the SMS provider fails, the whole order fails.",sit:"The checkout endpoint saves the order, then synchronously generates a PDF invoice, sends an email and sends an SMS.",
+ opts:[["Increase the HTTP timeout","wrong"],["Save the order, publish OrderPlaced to a queue, and let workers handle email, PDF and SMS","right"],["Run the three calls in parallel with Task.WhenAll","partial"],["Remove the SMS feature","wrong"]],
+ piece:"Message queue",concept:"queues",
+ why:"The user doesn’t need to wait for side effects. A queue makes checkout fast and stops a flaky SMS provider from failing orders. Parallel calls cut latency but still couple the order to every provider."},
+{stage:"1 million users",title:"Some customers are charged twice.",sit:"On slow networks, the mobile app times out and retries the payment request. The first request actually succeeded.",
+ opts:[["Turn off retries in the mobile app","partial"],["Require an idempotency key per payment and store it with a unique constraint","right"],["Lock the payments table during each payment","wrong"],["Refund duplicates manually each night","wrong"]],
+ piece:"Idempotency keys",concept:"idempotency",
+ why:"Retries are unavoidable and good. Idempotency keys make them safe. Turning off retries just turns double charges into failed payments. Table locks destroy throughput."},
+{stage:"1 million users",title:"The payment provider slows down and your entire site goes down with it.",sit:"Payment calls now take 30 seconds. Request threads pile up waiting, and even the home page stops responding.",
+ opts:[["Increase the thread pool size","wrong"],["Retry payment calls immediately up to 10 times","wrong"],["Add timeouts and a circuit breaker on the payment client, with a clear ‘try again shortly’ message","right"],["Move payments to a separate VM","partial"]],
+ piece:"Circuit breaker",concept:"resilience",
+ why:"A slow dependency is consuming all your resources. Timeouts cap the wait; a circuit breaker fails fast while the provider recovers. Aggressive retries make a retry storm. A separate VM isolates a little, but the waiting calls still pile up."},
+{stage:"2 million users",title:"A scraper is sending 5,000 requests a second to your search endpoint.",sit:"It comes from a handful of IP ranges and is driving up costs and latency for real users.",
+ opts:[["Scale out search to handle it","wrong"],["Apply per-client rate limiting at the gateway and return 429 with Retry-After","right"],["Show a CAPTCHA on every search","partial"],["Block all traffic from other countries","wrong"]],
+ piece:"Rate limiter",concept:"rate-limiting",
+ why:"Rate limiting protects capacity for real users without punishing them. Scaling out pays for the abuse. CAPTCHAs on every search hurt every customer, and geo-blocking hits legitimate users."},
+{stage:"5 million users",title:"The orders table is 3 TB and the primary can’t keep up with writes.",sit:"Replicas handle reads fine, but write latency during sales is climbing. You’re on the largest instance available. Most queries are ‘orders for this customer’.",
+ opts:[["Add more read replicas","wrong"],["Shard orders by customer ID","right"],["Shard orders by order date","wrong"],["Move orders to an in-memory cache","wrong"]],
+ piece:"Shards",concept:"sharding",
+ why:"This is the point where sharding is justified: writes, not reads, are the bottleneck and vertical scaling is exhausted. Customer ID spreads writes evenly and keeps each customer’s orders together. Date sharding sends every new order to one hot shard. Replicas don’t scale writes."},
+{stage:"5 million users",title:"Adding a fifth shard would move 80% of all orders.",sit:"Your router uses hash(customerId) % 4. Going to 5 changes almost every customer’s shard.",
+ opts:[["Accept the full migration each time","wrong"],["Use consistent hashing with virtual nodes for shard routing","right"],["Never add shards, buy bigger ones instead","partial"],["Route new customers to the new shard only","partial"]],
+ piece:"Consistent hashing",concept:"consistent-hashing",
+ why:"Consistent hashing moves only about 1/N of keys when a node is added. Routing only new customers to the new shard works for a while but leaves the old shards hot. Bigger shards just delay the problem."},
+{stage:"Flash sale · 100 phones in stock",title:"You sold 140 phones that you only had 100 of.",sit:"Stock is read from cache, checked in code, then decremented in a separate update. Thousands of people clicked ‘Buy’ in the same second.",
+ opts:[["Refresh the cache more often","wrong"],["Use one atomic conditional update: decrement only if stock > 0","right"],["Show ‘low stock’ warnings sooner","wrong"],["Process orders one at a time on a single thread","partial"]],
+ piece:"Atomic stock update",concept:"cap",
+ why:"Inventory needs strong consistency. ‘Read, check, then write’ is a race. A single atomic statement (UPDATE ... SET Stock = Stock - 1 WHERE Id = @id AND Stock > 0, or Redis DECR with a check) makes the database the referee. A single thread works but caps throughput badly."},
+{stage:"8 million users · 12 services",title:"p99 checkout latency doubled and nobody knows which service is slow.",sit:"Each team has its own logs. Checkout touches the gateway, cart, pricing, inventory, payments and orders.",
+ opts:[["Ask each team to check their logs","wrong"],["Add OpenTelemetry distributed tracing with correlation across services","right"],["Add more instances to every service","wrong"],["Watch average latency per service","partial"]],
+ piece:"Distributed tracing",concept:"observability",
+ why:"Tracing shows one request across every hop with timings, so the slow span stands out immediately. Averages hide tail latency, and scaling everything blindly costs money without an answer."},
+{stage:"8 million users",title:"Payment succeeded but the order was never created.",sit:"Order, Payment and Inventory are separate services with their own databases. A crash happened between charging the card and saving the order.",
+ opts:[["Use a two-phase commit across all three databases","partial"],["Use a saga with compensating actions and a transactional outbox for events","right"],["Merge all three into one shared database","partial"],["Add a nightly reconciliation job only","wrong"]],
+ piece:"Saga + outbox",concept:"distributed-tx",
+ why:"A saga coordinates the steps and undoes completed ones on failure; the outbox guarantees events are published if and only if the local transaction commits. 2PC blocks and is poorly supported across services. A shared DB works but gives up service independence."},
+{stage:"10 million users",title:"Customers want live order tracking on the app.",sit:"You have 20 instances of the tracking API. Status updates come from a courier webhook that can land on any instance.",
+ opts:[["Let the app poll every second","partial"],["Use SignalR with a Redis backplane or Azure SignalR Service","right"],["Use SignalR without a backplane","wrong"],["Email customers on every status change","wrong"]],
+ piece:"SignalR backplane",concept:"realtime",
+ why:"Push is right for live updates, and with 20 instances the webhook and the customer’s connection are usually on different servers, so you need a backplane. Polling every second from millions of phones is a lot of wasted load."}
+];
+
+/* ---------------- RENDER ---------------- */
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+const store = {
+  get(){ try { return JSON.parse(localStorage.getItem("sd-done")||"[]"); } catch { return []; } },
+  set(v){ try { localStorage.setItem("sd-done", JSON.stringify(v)); } catch {} }
+};
+let done = new Set(store.get());
+
+function renderNav(){
+  const side = document.getElementById("side");
+  let html = "";
+  TRACKS.forEach(t=>{
+    html += `<h2>${t.title}</h2>`;
+    C.filter(c=>c.track===t.id).forEach(c=>{
+      html += `<a href="#${c.id}" data-id="${c.id}" class="${done.has(c.id)?"done":""}">${c.title}</a>`;
+    });
+  });
+  html += `<a href="#game" class="game-link">Play: Scale ShopKart</a>`;
+  side.innerHTML = html;
+}
+
+function renderTracks(){
+  let n = 0, html = "";
+  TRACKS.forEach(t=>{
+    html += `<section class="track" id="track-${t.id}"><h2>${t.title}</h2><p>${t.blurb}</p>`;
+    C.filter(c=>c.track===t.id).forEach(c=>{
+      n++;
+      html += `<article class="concept" id="${c.id}">
+        <h3><span class="num">${n}</span>${c.title}</h3>
+        <p class="summary">${c.summary}</p>
+        <div class="body">${c.body}</div>
+        <div class="tradeoffs">
+          <div class="gain"><h4>What you gain</h4><ul>${c.gain.map(x=>`<li>${x}</li>`).join("")}</ul></div>
+          <div class="cost"><h4>What it costs</h4><ul>${c.cost.map(x=>`<li>${x}</li>`).join("")}</ul></div>
+        </div>
+        <div class="dotnet"><h4>In .NET</h4><p>${c.dotnet}</p></div>
+        ${c.code?`<div class="codewrap"><pre><code>${esc(c.code)}</code></pre></div>`:""}
+        <div class="interview"><b>Interview angle:</b> ${c.interview}</div>
+        <details class="check"><summary>Check yourself: ${c.check.q}</summary><p>${c.check.a}</p></details>
+        <button class="markdone ${done.has(c.id)?"on":""}" data-id="${c.id}">${done.has(c.id)?"Learned ✓":"Mark as learned"}</button>
+      </article>`;
+    });
+    html += `</section>`;
+  });
+  document.getElementById("tracks").innerHTML = html;
+}
+
+function renderPath(){
+  const stops = [["Client","api-design"],["CDN","cdn"],["Gateway","gateway"],["Rate limiter","rate-limiting"],["Load balancer","load-balancing"],["App instances","scaling"],["Cache","caching"],["Queue","queues"],["Database","sql-nosql"],["Replicas","replication"],["Shards","sharding"]];
+  document.getElementById("path").innerHTML = stops.map((s,i)=>
+    `${i?'<span class="arrow" aria-hidden="true">›</span>':""}<button data-go="${s[1]}">${s[0]}</button>`).join("");
+}
+
+function updateProgress(){
+  document.getElementById("progtext").textContent = `${done.size} of ${C.length} marked as learned`;
+  document.getElementById("progbar").style.width = (done.size/C.length*100)+"%";
+}
+
+document.addEventListener("click", e=>{
+  const md = e.target.closest(".markdone");
+  if (md){
+    const id = md.dataset.id;
+    done.has(id) ? done.delete(id) : done.add(id);
+    store.set([...done]);
+    md.classList.toggle("on", done.has(id));
+    md.textContent = done.has(id) ? "Learned ✓" : "Mark as learned";
+    const link = document.querySelector(`nav.side a[data-id="${id}"]`);
+    if (link) link.classList.toggle("done", done.has(id));
+    updateProgress();
+  }
+  const go = e.target.closest("[data-go]");
+  if (go){ document.getElementById(go.dataset.go).scrollIntoView(); history.replaceState(null,"","#"+go.dataset.go); }
+  if (e.target.closest("nav.side a") && window.innerWidth <= 900) toggleNav(false);
+});
+
+function toggleNav(open){
+  const side = document.getElementById("side"), btn = document.getElementById("navtoggle");
+  side.classList.toggle("open", open); btn.setAttribute("aria-expanded", open);
+  btn.textContent = open ? "Close" : "Topics";
+}
+document.getElementById("navtoggle").addEventListener("click", ()=>toggleNav(!document.getElementById("side").classList.contains("open")));
+
+/* ---------------- GAME ---------------- */
+let G;
+function shuffle(a){ a=[...a]; for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function newGame(){ G = {i:0, uptime:100, score:0, built:new Set(), log:[]}; renderGame(); }
+const titleOf = id => (C.find(c=>c.id===id)||{}).title;
+
+function hud(){
+  const col = G.uptime>70?"var(--good)":G.uptime>40?"var(--warn)":"var(--bad)";
+  return `<div class="hud">
+    <div><span>Round</span><strong>${Math.min(G.i+1,SCENES.length)} / ${SCENES.length}</strong></div>
+    <div><span>Uptime</span><strong>${G.uptime}%</strong><div class="uptime-bar"><i style="width:${G.uptime}%;background:${col}"></i></div></div>
+    <div><span>Architect score</span><strong>${G.score}</strong></div>
+  </div>
+  <div class="arch" aria-label="Your architecture">${PIECES.map(p=>`<span class="chip ${G.built.has(p)?"on":""}">${p}</span>`).join("")}</div>`;
+}
+
+function renderGame(){
+  const el = document.getElementById("game");
+  const head = `<h2>Scale ShopKart</h2><p class="intro">You’re the architect. ShopKart grows from 1,000 to 10 million users, and each round something breaks. Pick the fix a senior engineer would choose. Right calls add a piece to your architecture; wrong ones cost uptime. Drop to 0% and the company goes down with you.</p>`;
+  if (G.uptime<=0 || G.i>=SCENES.length){ el.innerHTML = head + hud() + result(); return; }
+  const s = SCENES[G.i];
+  const opts = shuffle(s.opts.map((o,k)=>({text:o[0],kind:o[1],k})));
+  el.innerHTML = head + hud() + `<div class="scene">
+    <div class="stage">${s.stage}</div><h3>${s.title}</h3><p class="sit">${s.sit}</p>
+    <div class="opts">${opts.map(o=>`<button data-kind="${o.kind}">${o.text}</button>`).join("")}</div>
+    <div id="fb"></div></div>`;
+  el.querySelectorAll(".opts button").forEach(b=>b.addEventListener("click",()=>answer(b,s)));
+}
+
+function answer(btn,s){
+  const kind = btn.dataset.kind;
+  document.querySelectorAll(".opts button").forEach(b=>{
+    b.disabled = true;
+    if (b.dataset.kind==="right") b.classList.add("right");
+  });
+  if (kind!=="right") btn.classList.add(kind);
+  let verdict;
+  if (kind==="right"){ G.score+=100; G.built.add(s.piece); verdict="Right call. "+s.piece+" added to your architecture."; }
+  else if (kind==="partial"){ G.score+=40; G.uptime=Math.max(0,G.uptime-10); verdict="It helps, but it isn’t the real fix. Uptime −10%."; }
+  else { G.uptime=Math.max(0,G.uptime-25); verdict="That makes things worse. Uptime −25%."; }
+  G.log.push({title:s.title, kind, concept:s.concept});
+  const last = G.uptime<=0 || G.i===SCENES.length-1;
+  document.getElementById("fb").innerHTML = `<div class="feedback">
+    <p><b>${verdict}</b></p><p>${s.why}</p>
+    <p>Revise: <a href="#${s.concept}">${titleOf(s.concept)}</a></p>
+    <button class="gbtn" id="next">${G.uptime<=0?"See what happened":last?"See your results":"Next round"}</button></div>`;
+  document.getElementById("next").addEventListener("click",()=>{ G.i++; renderGame(); document.getElementById("game").scrollIntoView({block:"start"}); });
+  document.getElementById("next").focus({preventScroll:true});
+}
+
+function result(){
+  const max = SCENES.length*100, right = G.log.filter(l=>l.kind==="right").length;
+  const crashed = G.uptime<=0;
+  const grade = crashed ? "ShopKart went down" :
+    right>=13 ? "Staff engineer material" : right>=10 ? "Senior engineer" : right>=7 ? "Getting there" : "Back to the drawing board";
+  const misses = G.log.filter(l=>l.kind!=="right");
+  return `<div class="scene result">
+    <h3>${grade}</h3>
+    <p>${right} of ${G.log.length} rounds answered with the best fix · score ${G.score} of ${max} · uptime ${G.uptime}%.</p>
+    ${misses.length?`<p><b>Revise these before you play again:</b></p><ul>${misses.map(m=>`<li><a href="#${m.concept}">${titleOf(m.concept)}</a> — ${m.title}</li>`).join("")}</ul>`:"<p>No misses. Next step: explain each choice out loud as if to an interviewer, including what it costs.</p>"}
+    <button class="gbtn" id="again">Play again</button></div>`;
+}
+document.addEventListener("click", e=>{ if (e.target.id==="again") newGame(); });
+
+renderNav(); renderTracks(); renderPath(); updateProgress(); newGame();
+if (location.hash){ const t = document.getElementById(location.hash.slice(1)); if (t) t.scrollIntoView(); }
+</script>
+</body>
+</html>

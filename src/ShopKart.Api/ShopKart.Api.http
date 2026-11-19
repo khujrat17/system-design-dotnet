@@ -1,0 +1,53 @@
+@host = http://localhost:5080
+
+### Health: liveness (process up) vs readiness (can serve traffic)  [concept 4]
+GET {{host}}/health/live
+
+###
+GET {{host}}/health/ready
+
+### Cache-aside: first call "database", second call "cache"  [concept 5]
+GET {{host}}/products/1
+
+###
+GET {{host}}/products/1
+
+### Update price -> cache key removed -> next GET reads the database again
+PUT {{host}}/products/1/price
+Content-Type: application/json
+
+1299
+
+### Output cache: generatedAt stays the same for 30 seconds  [concept 5/6]
+GET {{host}}/catalog
+
+### Rate limit: send this 7+ times quickly -> 429 with Retry-After  [concept 19]
+GET {{host}}/search?q=phone
+
+### Place an order with an idempotency key  [concepts 21, 12, 15]
+# Send it twice: the second response has "replayed": true and no second order/charge.
+# Watch the console: the background worker sends the email (with retries) after the response.
+POST {{host}}/orders
+Content-Type: application/json
+Idempotency-Key: 3f1c2a9e-0000-4000-8000-000000000001
+
+{ "productId": 1, "quantity": 2, "customerId": "asha" }
+
+### Missing key -> 400
+POST {{host}}/orders
+Content-Type: application/json
+
+{ "productId": 1, "quantity": 1, "customerId": "ravi" }
+
+### Cursor pagination  [concept 14]
+GET {{host}}/orders?limit=2
+
+###
+GET {{host}}/orders?after=2&limit=2
+
+### Server-side timeout -> 504 after 2 s (run WITHOUT the debugger)  [concept 20]
+GET {{host}}/slow-report
+
+### Correlation id is echoed back; it appears in every log line for this request  [concept 22]
+GET {{host}}/products/2
+X-Correlation-Id: my-trace-123

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>System Design Lab</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231D58B5'/%3E%3Ccircle cx='10' cy='11' r='3' fill='white'/%3E%3Ccircle cx='22' cy='11' r='3' fill='white'/%3E%3Ccircle cx='16' cy='22' r='3' fill='white'/%3E%3Cpath d='M10 11L16 22L22 11' stroke='white' stroke-width='1.6' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="topbar">
+  <button class="iconbtn navtoggle" id="navtoggle" aria-label="Show topics" aria-expanded="false">
+    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+  <a class="brand" href="#/">
+    <span class="logo" aria-hidden="true">
+      <svg viewBox="0 0 32 32" width="28" height="28"><rect width="32" height="32" rx="8" fill="var(--accent)"/><circle cx="10" cy="11" r="3" fill="#fff"/><circle cx="22" cy="11" r="3" fill="#fff"/><circle cx="16" cy="22" r="3" fill="#fff"/><path d="M10 11L16 22L22 11" stroke="#fff" stroke-width="1.6" fill="none"/></svg>
+    </span>
+    <span>System Design Lab</span>
+  </a>
+  <nav class="topnav" aria-label="Main">
+    <a href="#/" data-route="home">Home</a>
+    <a href="#/arcade" data-route="arcade">Arcade</a>
+    <a href="#/review" data-route="review">Flashcards</a>
+    <a href="#/game" data-route="game">ShopKart</a>
+    <a href="/course" target="_blank" rel="noopener">Full course ↗</a>
+  </nav>
+  <div class="topright">
+    <button class="searchbtn" id="searchbtn" aria-label="Search concepts">
+      <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2" fill="none"/><path d="M20 20l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <span>Search</span><kbd>Ctrl K</kbd>
+    </button>
+    <a class="iconbtn" id="repolink" href="#" target="_blank" rel="noopener" aria-label="Source on GitHub" hidden>
+      <svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8a8 8 0 0 0 5.47 7.59c.4.07.55-.17.55-.38v-1.33c-2.23.48-2.7-1.07-2.7-1.07-.36-.92-.89-1.17-.89-1.17-.73-.5.06-.49.06-.49.8.06 1.23.83 1.23.83.72 1.22 1.87.87 2.33.66.07-.52.28-.87.5-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.6 7.6 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48v2.2c0 .21.15.46.55.38A8 8 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+    </a>
+    <a class="xp-pill" id="xppill" href="#/arcade" aria-label="Your level and XP"></a>
+    <div class="progress-pill" title="Concepts marked as learned">
+      <div class="ring" id="ring"></div><span id="progtext">0 / 26</span>
+    </div>
+    <button class="iconbtn" id="themebtn" aria-label="Toggle dark mode">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" fill="currentColor"/></svg>
+    </button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="side" id="side" aria-label="Concepts"></aside>
+  <div class="scrim" id="scrim"></div>
+  <div class="mainwrap">
+    <main id="main" tabindex="-1"><div class="loading">Loading the lab…</div></main>
+    <footer class="sitefoot">
+      <span>System Design Lab · free and open source under the MIT license.</span>
+      <span><a href="#" id="footrepo" hidden>Contribute on GitHub</a> <button class="linkbtn" id="keysbtn">Keyboard shortcuts</button></span>
+    </footer>
+  </div>
+</div>
+
+<dialog class="palette" id="palette" aria-label="Search concepts">
+  <div class="palette-in">
+    <input id="paletteinput" type="search" placeholder="Search 26 concepts… e.g. cache, shard, retry" autocomplete="off" spellcheck="false">
+    <ul id="paletteresults" role="listbox"></ul>
+    <div class="palette-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>Enter</kbd> open</span><span><kbd>Esc</kbd> close</span></div>
+  </div>
+</dialog>
+
+<dialog class="palette keys" id="keyhelp" aria-label="Keyboard shortcuts">
+  <div class="palette-in">
+    <h3>Keyboard shortcuts</h3>
+    <dl>
+      <dt><kbd>Ctrl</kbd> <kbd>K</kbd> or <kbd>/</kbd></dt><dd>Search concepts</dd>
+      <dt><kbd>←</kbd> <kbd>→</kbd></dt><dd>Previous / next step in a lesson (elsewhere: previous / next concept)</dd>
+      <dt><kbd>Space</kbd></dt><dd>Pause or resume the lesson</dd>
+      <dt><kbd>1</kbd> … <kbd>5</kbd></dt><dd>Learn / Watch / Play / Run / Code tab</dd>
+      <dt><kbd>P</kbd></dt><dd>Pause or resume the animation</dd>
+      <dt><kbd>R</kbd></dt><dd>Run the C# demo (again)</dd>
+      <dt><kbd>M</kbd></dt><dd>Mark the concept as learned</dd>
+      <dt><kbd>?</kbd></dt><dd>Show this help</dd>
+    </dl>
+    <form method="dialog"><button class="btn ghost">Close</button></form>
+  </div>
+</dialog>
+
+<script src="/course-data.js"></script>
+<script src="viz/lab.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

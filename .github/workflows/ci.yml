@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build, test, run every demo
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Restore
+        run: dotnet restore SystemDesign.sln
+
+      - name: Build
+        run: dotnet build SystemDesign.sln -c Release --no-restore -warnaserror
+
+      - name: Test
+        run: dotnet test SystemDesign.sln -c Release --no-build --logger "console;verbosity=normal"
+
+      - name: Run all 26 concept demos in the console app
+        run: dotnet run --project src/SystemDesign.Concepts -c Release --no-build -- all
+
+  docker:
+    name: Docker image builds
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t system-design-lab .
+      - name: Smoke test the container
+        run: |
+          docker run -d --name lab -p 8080:8080 system-design-lab
+          for i in $(seq 1 30); do curl -fs http://localhost:8080/health && break; sleep 1; done
+          curl -fs http://localhost:8080/api/demos | grep -q "Consistent hashing"
+          curl -fs -X POST http://localhost:8080/api/demos/11/run | grep -q '"lesson"'
+          docker logs lab

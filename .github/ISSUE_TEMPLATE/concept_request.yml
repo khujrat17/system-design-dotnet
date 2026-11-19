@@ -1,0 +1,18 @@
+name: Concept or demo idea
+description: Suggest a new concept, or a better way to demonstrate an existing one
+labels: [enhancement]
+body:
+  - type: input
+    id: concept
+    attributes:
+      label: Concept
+      placeholder: "Bloom filters"
+    validations:
+      required: true
+  - type: textarea
+    id: demo
+    attributes:
+      label: What should the demo show?
+      description: The experiment a learner would run, and the "aha" it should produce.
+    validations:
+      required: true
